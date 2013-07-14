@@ -5,7 +5,7 @@ var buffer = fs.readFileSync('index.html');
 
 var app = express.createServer(express.logger());
 app.configure(function() {
-    app.use(express.static(path.join(__dirname, 'public')));
+    app.use(express.static(path.join(__dirname, '.')));
 });
 
 app.get('/', function(request, response) {
