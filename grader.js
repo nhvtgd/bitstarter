@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /*
 Automatically grade files for the presence of specified HTML tags/attributes.
-Uses commander.js and cheerio. Teaches command line application development
+Uses commander.js and cherio. Teaches command line application development
 and basic DOM parsing.
 
 References:
@@ -26,7 +26,14 @@ var program = require('commander');
 var cheerio = require('cheerio');
 var HTMLFILE_DEFAULT = "index.html";
 var CHECKSFILE_DEFAULT = "checks.json";
+var restler = require('restler');
+var sys = require('util');
 
+var getHtmlFromLink = function(url){
+    restler.get(url).on('complete', function(data) {
+	console.log(data);
+   });
+}
 var assertFileExists = function(infile) {
     var instr = infile.toString();
     if(!fs.existsSync(instr)) {
@@ -55,6 +62,17 @@ var checkHtmlFile = function(htmlfile, checksfile) {
     return out;
 };
 
+var checkLink = function(url, checksfile){
+    $ = cheerio.load(url);
+    var checks = loadChecks(checksfile).sort();
+    var out = {};
+    for(var ii in checks) {
+        var present = $(checks[ii]).length > 0;
+        out[checks[ii]] = present;
+    }
+    return out;
+    
+}
 var clone = function(fn) {
     // Workaround for commander.js issue.
     // http://stackoverflow.com/a/6772648
@@ -65,10 +83,22 @@ if(require.main == module) {
     program
         .option('-c, --checks <check_file>', 'Path to checks.json', clone(assertFileExists), CHECKSFILE_DEFAULT)
         .option('-f, --file <html_file>', 'Path to index.html', clone(assertFileExists), HTMLFILE_DEFAULT)
-        .parse(process.argv);
-    var checkJson = checkHtmlFile(program.file, program.checks);
-    var outJson = JSON.stringify(checkJson, null, 4);
-    console.log(outJson);
+	.option('-u, --url <url_html>','Link to html')  
+      .parse(process.argv);
+    if (program.url) {
+	console.log(program.url);
+	restler.get(program.url).on('complete', function(data){
+	    console.log(data);
+	    var checkJson = checkLink(data, program.checks);
+	    var outJson = JSON.stringify(checkJson, null, 4);
+	    console.log(outJson);
+	});
+    }
+    else{
+	var checkJson = checkHtmlFile(program.file, program.checks);
+	var outJson = JSON.stringify(checkJson, null, 4);
+	console.log(outJson);
+    }
 } else {
     exports.checkHtmlFile = checkHtmlFile;
 }
